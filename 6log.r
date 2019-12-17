@@ -1,0 +1,52 @@
+library(MASS)
+library(ggplot2)
+titanicDS = read.csv("titanic.csv")
+dim(titanicDS)
+
+str(titanicDS)
+
+summary(titanicDS)
+
+attach(titanicDS)
+UniqueValue = function (x) {length(unique(x)) }
+apply(titanicDS, 2, UniqueValue)
+
+NaValue = function (x) {sum(is.na(x)) }
+apply(titanicDS, 2, NaValue)
+
+BlankValue = function (x) {sum(x=="") }
+apply(titanicDS, 2, BlankValue)
+
+MissPercentage = function (x) {100 * sum (is.na(x)) / length (x) }
+apply(titanicDS, 2, MissPercentage)
+
+titanicDS$Age[is.na(titanicDS$Age)] = mean(titanicDS$Age, na.rm=TRUE)
+apply(titanicDS, 2, MissPercentage)
+
+set.seed(1)
+row.number = sample(1:nrow(titanicDS), 0.6*nrow(titanicDS))
+train = titanicDS[row.number,]
+test = titanicDS[-row.number,]
+dim(train)
+dim(test)
+
+# logistic regression
+attach(train)
+model1 = glm(factor(Survived)~.-PassengerId-Name-Ticket-Cabin, data=train, family=binomial)
+summary(model1)
+
+#Remove Not significant features.
+model2 = update(model1, ~.-Parch-Fare-Embarked)
+summary(model2)
+
+###Predict for training data and find training accuracy
+pred.prob = predict(model2, type="response")
+pred.prob = ifelse(pred.prob > 0.5, 1, 0)
+table(pred.prob, Survived)
+
+
+##Predict for test Data and find the test accuracy.
+attach(test)
+pred.prob = predict(model2, newdata= test, type="response")
+pred.prob = ifelse(pred.prob > 0.5, 1, 0)
+table(pred.prob, Survived)
